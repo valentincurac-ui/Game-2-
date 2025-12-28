@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minero con Inventario</title>
+    <style>
+        body { font-family: Arial; text-align: center; background: #111; color: #ffd700; margin: 0; padding: 20px; }
+        .container { background: rgba(0,0,0,0.7); border-radius: 15px; padding: 20px; max-width: 600px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .poblacion { font-size: 18px; }
+        .materiales { text-align: right; font-size: 20px; }
+        .resources { margin: 5px 0; }
+        #mina { width: 300px; height: 300px; margin: 40px auto; cursor: pointer; position: relative; }
+        #roca { width: 100%; border-radius: 20%; box-shadow: 0 10px 20px #000; }
+        #picoAnim { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; opacity: 0; }
+        #mina:active #picoAnim { opacity: 1; animation: hit 0.6s; }
+        @keyframes hit { 0% { transform: translate(-50%, -50%) rotate(-30deg); } 50% { transform: translate(-50%, -150%) rotate(30deg); } 100% { transform: translate(-50%, -50%) rotate(-30deg); } }
+        button { padding: 15px; margin: 10px; background: #333; color: #ffd700; border: 3px solid #888; border-radius: 10px; font-size: 18px; width: 90%; }
+        #inventario { margin: 20px; font-size: 20px; }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>⛏️ Minero</h1>
+        <div class="header">
+            <div class="poblacion">Población: <span id="poblacion">0</span> 👥</div>
+            <div class="materiales">
+                <div class="resources">Oro: <span id="oro">0</span> 🪙</div>
+                <div class="resources">Piedra: <span id="piedra">0</span> 🪨</div>
+                <div class="resources">Hierro: <span id="hierro">0</span></div>
+                <div class="resources">Carbón: <span id="carbon">0</span></div>
+                <div class="resources">Diamante: <span id="diamante">0</span> 💎</div>
+            </div>
+        </div>
+        <div id="inventario"><strong>Inventario:</strong><br>(se actualiza al minar)</div>
+        <div id="mina">
+            <img id="roca" src="https://cdn.mos.cms.futurecdn.net/Xafd5wMUtMmv2EMZ89JPG6-1200-80.jpg" alt="Roca">
+            <img id="picoAnim" src="https://forum-cfx-re.akamaized.net/original/5X/c/1/e/7/c1e71446e5e0e6d7042733631bff5934212f5415.gif" alt="Pico">
+        </div>
+        <p>Nivel pico: <span id="nivel">1</span> (+<span id="porclick">1</span>/toque)</p>
+        <p>Mineros: <span id="mineros">0</span> (<span id="auto">0</span>/seg)</p>
+        <button id="mejorarPico">Mejorar pico (100 🪙)</button>
+        <button id="comprarMinero">Comprar minero (500 🪙)</button>
+        <button id="construir">Construir casa (500 🪨)</button>
+    </div>
+
+    <script>
+        let oro = 0, piedra = 0, poblacion = 0, nivel = 1, porClick = 1, mineros = 0, autoSeg = 0;
+        let costoPico = 100, costoMinero = 500, costoCasa = 500;
+        let inventario = { hierro: 0, carbon: 0, diamante: 0 };
+
+        function cargar() {
+            const datos = localStorage.getItem('mineroInventario');
+            if (datos) {
+                const saved = JSON.parse(datos);
+                oro = saved.oro || 0;
+                piedra = saved.piedra || 0;
+                poblacion = saved.poblacion || 0;
+                nivel = saved.nivel || 1;
+                porClick = saved.porClick || 1;
+                mineros = saved.mineros || 0;
+                autoSeg = saved.autoSeg || 0;
+                costoPico = saved.costoPico || 100;
+                costoMinero = saved.costoMinero || 500;
+                costoCasa = saved.costoCasa || 500;
+                inventario = saved.inventario || { hierro: 0, carbon: 0, diamante: 0 };
+            }
+        }
+
+        function guardar() {
+            localStorage.setItem('mineroInventario', JSON.stringify({
+                oro, piedra, poblacion, nivel, porClick, mineros, autoSeg,
+                costoPico, costoMinero, costoCasa, inventario
+            }));
+        }
+
+        function minar(cant) {
+            const rand = Math.random();
+            if (rand < 0.20) oro += cant;
+            else if (rand < 0.60) piedra += cant;
+            else if (rand < 0.80) inventario.hierro += cant;
+            else if (rand < 0.95) inventario.carbon += cant;
+            else inventario.diamante += cant;
+        }
+
+        function actualizar() {
+            document.getElementById('oro').textContent = Math.floor(oro).toLocaleString();
+            document.getElementById('piedra').textContent = Math.floor(piedra).toLocaleString();
+            document.getElementById('poblacion').textContent = poblacion;
+            document.getElementById('hierro').textContent = inventario.hierro;
+            document.getElementById('carbon').textContent = inventario.carbon;
+            document.getElementById('diamante').textContent = inventario.diamante;
+            document.getElementById('nivel').textContent = nivel;
+            document.getElementById('porclick').textContent = porClick;
+            document.getElementById('mineros').textContent = mineros;
+            document.getElementById('auto').textContent = autoSeg;
+            document.getElementById('mejorarPico').textContent = `Mejorar pico (${costoPico.toLocaleString()} 🪙)`;
+            document.getElementById('comprarMinero').textContent = `Comprar minero (${costoMinero.toLocaleString()} 🪙)`;
+            document.getElementById('construir').textContent = `Construir casa (${costoCasa.toLocaleString()} 🪨)`;
+        }
+
+        document.getElementById('mina').onclick = () => { minar(porClick); actualizar(); guardar(); };
+        document.getElementById('mejorarPico').onclick = () => { if (oro >= costoPico) { oro -= costoPico; nivel++; porClick += 2; costoPico = Math.floor(costoPico * 1.5); actualizar(); guardar(); } };
+        document.getElementById('comprarMinero').onclick = () => { if (oro >= costoMinero) { oro -= costoMinero; mineros++; autoSeg += 2; costoMinero = Math.floor(costoMinero * 1.8); actualizar(); guardar(); } };
+        document.getElementById('construir').onclick = () => { if (piedra >= costoCasa) { piedra -= costoCasa; poblacion += nivel * 5; costoCasa = Math.floor(costoCasa * 1.6); actualizar(); guardar(); } };
+
+        setInterval(() => { minar(autoSeg); actualizar(); guardar(); }, 1000);
+
+        cargar();
+        actualizar();
+        Telegram.WebApp.ready();
+    </script>
+</body>
+</html>
